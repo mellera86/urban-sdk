@@ -2,7 +2,7 @@
 
 import "leaflet/dist/leaflet.css";
 
-import { FC, useEffect, useRef } from "react";
+import { FC, useCallback, useEffect, useMemo, useRef } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -26,9 +26,16 @@ import type {
   Path,
   StyleFunction,
 } from "leaflet";
-import { getFeatureLabel, getFeatureValue } from "./geojson-utils";
+import {
+  getFeatureLabel,
+  getFeatureValue,
+  hasPointFeatures,
+  isLargeGeoJSON,
+  isRouteLineCollection,
+} from "./geojson-utils";
 
 type MapLeafletViewProps = {
+  mapKey: string;
   geoJson: MapGeoJSON;
   mapConfig: MapConfig;
   valueProperty?: string;
@@ -64,6 +71,14 @@ function getPointStyle(feature: Feature, valueProperty?: string) {
   };
 }
 
+function getRouteLineStyle() {
+  return {
+    color: "#f97316",
+    weight: 2,
+    opacity: 0.9,
+  };
+}
+
 function getPathStyle(feature: Feature, valueProperty?: string) {
   const value = getFeatureValue(feature, valueProperty);
   return {
@@ -81,15 +96,21 @@ const FitBounds: FC<{ data: MapGeoJSON }> = ({ data }) => {
   useEffect(() => {
     const layer = L.geoJSON(data);
     const bounds = layer.getBounds();
+
     if (bounds.isValid()) {
       map.fitBounds(bounds, { padding: [10, 32] });
     }
+
+    return () => {
+      layer.remove();
+    };
   }, [data, map]);
 
   return null;
 };
 
 const MapLeafletView: FC<MapLeafletViewProps> = ({
+  mapKey,
   geoJson,
   mapConfig,
   valueProperty,
@@ -99,75 +120,98 @@ const MapLeafletView: FC<MapLeafletViewProps> = ({
   const defaultZoom = mapState.zoom;
   const tileLayerUrl = getTileLayerUrl(mapStyle.styleType);
   const geoJsonRef = useRef<LeafletGeoJSON | null>(null);
+  const isLargeDataset = isLargeGeoJSON(geoJson);
+  const isRouteLines = isRouteLineCollection(geoJson);
+  const renderPoints = hasPointFeatures(geoJson);
 
-  const pointToLayer: NonNullable<GeoJSONOptions["pointToLayer"]> = (
-    feature,
-    latlng,
-  ) => L.circleMarker(latlng, getPointStyle(feature as Feature, valueProperty));
+  const pointToLayer = useCallback<NonNullable<GeoJSONOptions["pointToLayer"]>>(
+    (feature, latlng) =>
+      L.circleMarker(latlng, getPointStyle(feature as Feature, valueProperty)),
+    [valueProperty],
+  );
 
-  const geoJsonStyle: StyleFunction = (feature) =>
-    feature ? getPathStyle(feature as Feature, valueProperty) : {};
+  const geoJsonStyle = useCallback<StyleFunction>(
+    (feature) => {
+      if (!feature) return {};
+      if (isRouteLines) return getRouteLineStyle();
+      return getPathStyle(feature as Feature, valueProperty);
+    },
+    [isRouteLines, valueProperty],
+  );
 
-  const onEachFeature = (feature: Feature, layer: Layer) => {
-    const props = feature.properties as Record<string, unknown> | null;
+  const onEachFeature = useCallback(
+    (feature: Feature, layer: Layer) => {
+      const props = feature.properties as Record<string, unknown> | null;
 
-    const popupContent = `
+      layer.bindPopup(`
       <div style="font-size: 13px; line-height: 1.4; min-width: 200px;">
-        <h4>
-          ${getFeatureLabel(props)}
-        </h4>
+        <h4>${getFeatureLabel(props)}</h4>
       </div>
-    `;
+    `);
 
-    layer.bindPopup(popupContent);
+      if (isLargeDataset) return;
 
-    layer.on({
-      mouseover: (e: LeafletMouseEvent) => {
-        const target = e.target;
-        if (isCircleMarker(target)) {
-          target.setRadius(10);
-          return;
-        }
-        (target as Path).setStyle({
-          fillOpacity: 0.9,
-          weight: 3,
-          color: "#4a5568",
-        });
-        target.bringToFront();
-      },
-      mouseout: (e: LeafletMouseEvent) => {
-        const target = e.target;
-        if (isCircleMarker(target)) {
-          target.setStyle(getPointStyle(feature, valueProperty));
-          return;
-        }
-        geoJsonRef.current?.resetStyle(target);
-      },
-    });
-  };
+      layer.on({
+        mouseover: (e: LeafletMouseEvent) => {
+          const target = e.target;
+          if (isCircleMarker(target)) {
+            target.setRadius(10);
+            return;
+          }
+          (target as Path).setStyle(
+            isRouteLines
+              ? { weight: 4, opacity: 1, color: "#fb923c" }
+              : {
+                  fillOpacity: 0.9,
+                  weight: 3,
+                  color: "#4a5568",
+                },
+          );
+          target.bringToFront();
+        },
+        mouseout: (e: LeafletMouseEvent) => {
+          const target = e.target;
+          if (isCircleMarker(target)) {
+            target.setStyle(getPointStyle(feature, valueProperty));
+            return;
+          }
+          geoJsonRef.current?.resetStyle(target);
+        },
+      });
+    },
+    [isLargeDataset, isRouteLines, valueProperty],
+  );
 
-  const mapContainerProps = {
-    center: mapCenter,
-    zoom: defaultZoom,
-    scrollWheelZoom: true,
-    className: "h-full w-full",
-  } satisfies MapOptions & Pick<MapContainerProps, "className">;
+  const mapContainerProps = useMemo(
+    () =>
+      ({
+        center: mapCenter,
+        zoom: defaultZoom,
+        scrollWheelZoom: true,
+        preferCanvas: isLargeDataset,
+        className: "h-full w-full",
+      }) satisfies MapOptions & Pick<MapContainerProps, "className">,
+    [defaultZoom, isLargeDataset, mapCenter],
+  );
 
-  const geoJsonProps = {
-    data: geoJson,
-    pointToLayer,
-    style: geoJsonStyle,
-    onEachFeature,
-  } satisfies GeoJSONOptions & { data: MapGeoJSON };
+  const geoJsonProps = useMemo(() => {
+    const options: GeoJSONOptions & { data: MapGeoJSON } = {
+      data: geoJson,
+      ...(renderPoints ? { pointToLayer } : {}),
+      style: geoJsonStyle,
+      onEachFeature,
+    };
+    return options;
+  }, [geoJson, onEachFeature, pointToLayer, geoJsonStyle, renderPoints]);
 
   return (
     <div className="h-[min(60vh,600px)] w-full overflow-hidden rounded-lg shadow-md">
-      <MapContainer {...mapContainerProps}>
+      <MapContainer key={mapKey} {...mapContainerProps}>
         <TileLayer url={tileLayerUrl} />
         <GeoJSON
-          key={geoJson.features.length}
+          key={mapKey}
           ref={geoJsonRef}
-          {...geoJsonProps}
+          {...(geoJsonProps as GeoJSONProps)}
         />
         <FitBounds data={geoJson} />
       </MapContainer>

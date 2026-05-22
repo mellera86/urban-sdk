@@ -5,7 +5,6 @@ import { Button } from "@components/Button";
 import { Label } from "@components/Label";
 import {
   Command,
-  CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
@@ -13,34 +12,24 @@ import {
 } from "@components/Command";
 import { Popover, PopoverContent, PopoverTrigger } from "@components/Popover";
 import { ChevronDownIcon } from "lucide-react";
+import {
+  getSortOptionLabel,
+  MAP_SORT_OPTIONS,
+  type MapSortOption,
+} from "./map-sort";
 
-type MapFilterProps = {
-  subLabels: string[];
-  value: string[];
-  onValueChange: (subLabels: string[]) => void;
+type MapSorterProps = {
+  value: MapSortOption;
+  onValueChange: (sort: MapSortOption) => void;
 };
 
-function getTriggerLabel(selected: string[]) {
-  if (selected.length === 0) return "All sources";
-  if (selected.length === 1) return selected[0];
-  return `${selected.length} sources selected`;
-}
-
-const MapFilter = ({ subLabels, value, onValueChange }: MapFilterProps) => {
+const MapSorter = ({ value, onValueChange }: MapSorterProps) => {
   const labelId = useId();
   const [open, setOpen] = useState(false);
 
-  const toggleSubLabel = (subLabel: string) => {
-    onValueChange(
-      value.includes(subLabel)
-        ? value.filter((item) => item !== subLabel)
-        : [...value, subLabel],
-    );
-  };
-
   return (
     <div className="flex flex-col gap-1.5">
-      <Label id={labelId}>Filter By:</Label>
+      <Label id={labelId}>Sort By:</Label>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger
           aria-labelledby={labelId}
@@ -53,23 +42,25 @@ const MapFilter = ({ subLabels, value, onValueChange }: MapFilterProps) => {
             />
           }
         >
-          <span className="truncate">{getTriggerLabel(value)}</span>
+          <span className="truncate">{getSortOptionLabel(value)}</span>
           <ChevronDownIcon className="size-4 shrink-0 opacity-50" />
         </PopoverTrigger>
         <PopoverContent className="w-64 p-0" align="start">
-          <Command>
-            <CommandInput placeholder="Search sources..." />
+          <Command shouldFilter={false} value={getSortOptionLabel(value)}>
+            <CommandInput visuallyHidden aria-labelledby={labelId} />
             <CommandList>
-              <CommandEmpty>No source found.</CommandEmpty>
               <CommandGroup>
-                {subLabels.map((subLabel) => (
+                {MAP_SORT_OPTIONS.map((option) => (
                   <CommandItem
-                    key={subLabel}
-                    value={subLabel}
-                    data-checked={value.includes(subLabel)}
-                    onSelect={() => toggleSubLabel(subLabel)}
+                    key={option.value}
+                    value={option.label}
+                    data-checked={value === option.value}
+                    onSelect={() => {
+                      onValueChange(option.value);
+                      setOpen(false);
+                    }}
                   >
-                    {subLabel}
+                    {option.label}
                   </CommandItem>
                 ))}
               </CommandGroup>
@@ -81,4 +72,4 @@ const MapFilter = ({ subLabels, value, onValueChange }: MapFilterProps) => {
   );
 };
 
-export { MapFilter };
+export { MapSorter };

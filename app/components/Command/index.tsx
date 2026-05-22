@@ -65,10 +65,16 @@ function CommandDialog({
 
 function CommandInput({
   className,
+  visuallyHidden,
   ...props
-}: React.ComponentProps<typeof CommandPrimitive.Input>) {
+}: React.ComponentProps<typeof CommandPrimitive.Input> & {
+  visuallyHidden?: boolean;
+}) {
   return (
-    <div data-slot="command-input-wrapper" className="p-1 pb-0">
+    <div
+      data-slot="command-input-wrapper"
+      className={cn("p-1 pb-0", visuallyHidden && "sr-only h-0 overflow-hidden p-0")}
+    >
       <InputGroup className="h-8! rounded-lg! border-input/30 bg-input/30 shadow-none! *:data-[slot=input-group-addon]:pl-2!">
         <CommandPrimitive.Input
           data-slot="command-input"

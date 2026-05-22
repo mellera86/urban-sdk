@@ -12,7 +12,10 @@ import {
 import { Message } from "@components/Message";
 import { Spinner } from "@components/Spinner";
 import dynamic from "next/dynamic";
-import { FC, PropsWithChildren, useEffect, useState } from "react";
+import { QUERY_KEYS } from "@utils/queries";
+import { cn } from "@utils/styles";
+import { useQueryClient } from "@tanstack/react-query";
+import { FC, PropsWithChildren, useState } from "react";
 
 const MapDataVisualization = dynamic(() => import("./MapDataVisualization"), {
   ssr: false,
@@ -38,6 +41,16 @@ const MapDialog: FC<MapDialogProps> = ({
   description,
 }) => {
   const [open, setOpen] = useState(false);
+  const queryClient = useQueryClient();
+
+  const handleOpenChange = (nextOpen: boolean) => {
+    setOpen(nextOpen);
+
+    if (!nextOpen) {
+      queryClient.removeQueries({ queryKey: [QUERY_KEYS.MAPS_DATA, dataUrl] });
+      queryClient.removeQueries({ queryKey: [QUERY_KEYS.MAPS_CONFIG, configUrl] });
+    }
+  };
 
   const {
     data,
@@ -65,8 +78,21 @@ const MapDialog: FC<MapDialogProps> = ({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger className="cursor-pointer">{children}</DialogTrigger>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
+      <DialogTrigger
+        nativeButton={false}
+        aria-label={title ? `View map: ${title}` : "View map"}
+        render={
+          <div
+            className={cn(
+              "block h-full w-full cursor-pointer rounded-2xl text-left outline-none",
+              "focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+            )}
+          />
+        }
+      >
+        {children}
+      </DialogTrigger>
       <DialogContent className="flex w-[min(96vw,960px)] max-w-none flex-col gap-4 sm:max-w-none">
         <DialogHeader>
           {title ? <DialogTitle>{title}</DialogTitle> : null}
@@ -88,7 +114,11 @@ const MapDialog: FC<MapDialogProps> = ({
         )}
 
         {open && data && mapConfig && !isPending && !error && (
-          <MapDataVisualization geoJsonData={data} mapConfig={mapConfig} />
+          <MapDataVisualization
+            mapKey={dataUrl}
+            geoJsonData={data}
+            mapConfig={mapConfig}
+          />
         )}
       </DialogContent>
     </Dialog>

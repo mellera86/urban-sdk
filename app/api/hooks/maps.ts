@@ -41,6 +41,7 @@ const useMapsDataQuery: BaseQueryWithVariables<
       return response.data;
     },
     enabled: !!url,
+    gcTime: 0,
     ...options,
   });
 };
@@ -63,6 +64,7 @@ const useMapsConfigQuery: BaseQueryWithVariables<
       return response.data;
     },
     enabled: !!url,
+    gcTime: 0,
     ...options,
   });
 };

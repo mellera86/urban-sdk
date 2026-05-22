@@ -2,26 +2,30 @@
 
 import { MapConfig } from "@models/map-config";
 import { MapGeoJSON } from "@models/map-geojson";
-import { FC } from "react";
-import { normalizeApiGeoJSON, getValueProperty } from "./geojson-utils";
+import { FC, useMemo } from "react";
+import { getValueProperty, prepareGeoJSONForMap } from "./geojson-utils";
 import { MapLeafletView } from "./MapLeafletView";
 
 type MapDataVisualizationProps = {
   geoJsonData?: MapGeoJSON;
   mapConfig: MapConfig;
+  mapKey: string;
 };
 
 const MapDataVisualization: FC<MapDataVisualizationProps> = ({
   geoJsonData,
   mapConfig,
+  mapKey,
 }) => {
-  const leafletGeoJson = geoJsonData
-    ? normalizeApiGeoJSON(geoJsonData)
-    : undefined;
+  const leafletGeoJson = useMemo(
+    () => (geoJsonData ? prepareGeoJSONForMap(geoJsonData) : undefined),
+    [geoJsonData],
+  );
 
-  const valueProperty = leafletGeoJson
-    ? getValueProperty(leafletGeoJson)
-    : undefined;
+  const valueProperty = useMemo(
+    () => (leafletGeoJson ? getValueProperty(leafletGeoJson) : undefined),
+    [leafletGeoJson],
+  );
 
   if (!leafletGeoJson) {
     return (
@@ -33,6 +37,7 @@ const MapDataVisualization: FC<MapDataVisualizationProps> = ({
 
   return (
     <MapLeafletView
+      mapKey={mapKey}
       geoJson={leafletGeoJson}
       mapConfig={mapConfig}
       valueProperty={valueProperty}

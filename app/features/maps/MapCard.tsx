@@ -25,35 +25,36 @@ const MapCard = ({ map }: { map: Map }) => {
   const { label, subLabel, imageUrl, description, dataUrl, configUrl } = map;
 
   return (
-    <Card variant="media" className="relative">
-      <MapDialog
-        dataUrl={dataUrl}
-        configUrl={configUrl}
-        title={label}
-        description={description}
-      >
+    <MapDialog
+      dataUrl={dataUrl}
+      configUrl={configUrl}
+      title={label}
+      description={description}
+    >
+      <Card variant="media" className="relative h-full">
         <CardMedia>
           <Image
             src={imageUrl}
-            alt={label}
+            alt=""
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             className="object-cover"
+            aria-hidden
           />
         </CardMedia>
-      </MapDialog>
-      <Badge variant="source" className="absolute top-2 right-2">
-        {subLabel}
-      </Badge>
-      <CardHeader>
-        <CardTitleRow>
-          <CardTitle>{label}</CardTitle>
-        </CardTitleRow>
-      </CardHeader>
-      <CardContent>
-        <CardDescription>{description}</CardDescription>
-      </CardContent>
-    </Card>
+        <Badge variant="source" className="absolute top-2 right-2">
+          {subLabel}
+        </Badge>
+        <CardHeader>
+          <CardTitleRow>
+            <CardTitle>{label}</CardTitle>
+          </CardTitleRow>
+        </CardHeader>
+        <CardContent>
+          <CardDescription>{description}</CardDescription>
+        </CardContent>
+      </Card>
+    </MapDialog>
   );
 };
 
