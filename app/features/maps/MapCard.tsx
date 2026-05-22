@@ -1,3 +1,5 @@
+"use client";
+
 import { Badge } from "@components/Badge";
 import {
   Card,
@@ -10,7 +12,12 @@ import {
 } from "@components/Card";
 import { Map } from "@models/maps";
 import Image from "next/image";
-import { MapDialog } from "./MapDialog";
+import dynamic from "next/dynamic";
+
+const MapDialog = dynamic(
+  () => import("./MapDialog").then((mod) => mod.MapDialog),
+  { ssr: false },
+);
 
 const MapCard = ({ map }: { map: Map }) => {
   if (!map) return null;
@@ -19,7 +26,12 @@ const MapCard = ({ map }: { map: Map }) => {
 
   return (
     <Card variant="media" className="relative">
-      <MapDialog dataUrl={dataUrl} configUrl={configUrl}>
+      <MapDialog
+        dataUrl={dataUrl}
+        configUrl={configUrl}
+        title={label}
+        description={description}
+      >
         <CardMedia>
           <Image
             src={imageUrl}

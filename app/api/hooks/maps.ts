@@ -1,11 +1,16 @@
 "use client";
 
-import { GET_MapsResponse, getMaps, getMapsData } from "@actions/maps";
-import { FeatureCollection } from "@features/maps/MapDataVisualization";
+import {
+  GET_MapsResponse,
+  getMaps,
+  getMapsConfig,
+  getMapsData,
+} from "@actions/maps";
+import { MapConfig } from "@models/map-config";
+import { MapGeoJSON } from "@models/map-geojson";
 import { useQuery } from "@tanstack/react-query";
 import { QUERY_KEYS } from "@utils/queries";
 import { BaseQuery, BaseQueryWithVariables } from "@utils/types";
-import { FC } from "react";
 
 const useMapsQuery: BaseQuery<GET_MapsResponse> = ({ options } = {}) => {
   return useQuery({
@@ -19,13 +24,20 @@ const useMapsQuery: BaseQuery<GET_MapsResponse> = ({ options } = {}) => {
 };
 
 const useMapsDataQuery: BaseQueryWithVariables<
-  FeatureCollection,
+  MapGeoJSON,
   { url: string }
 > = ({ options, variables: { url } }) => {
   return useQuery({
     queryKey: [QUERY_KEYS.MAPS_DATA, url],
     queryFn: async () => {
       const response = await getMapsData(url);
+      if (response.error || !response.data) {
+        throw new Error(
+          typeof response.error === "string"
+            ? response.error
+            : "Failed to load map data",
+        );
+      }
       return response.data;
     },
     enabled: !!url,
@@ -33,4 +45,26 @@ const useMapsDataQuery: BaseQueryWithVariables<
   });
 };
 
-export { useMapsQuery, useMapsDataQuery };
+const useMapsConfigQuery: BaseQueryWithVariables<
+  MapConfig,
+  { url: string }
+> = ({ options, variables: { url } }) => {
+  return useQuery({
+    queryKey: [QUERY_KEYS.MAPS_CONFIG, url],
+    queryFn: async () => {
+      const response = await getMapsConfig(url);
+      if (response.error || !response.data) {
+        throw new Error(
+          typeof response.error === "string"
+            ? response.error
+            : "Failed to load map config",
+        );
+      }
+      return response.data;
+    },
+    enabled: !!url,
+    ...options,
+  });
+};
+
+export { useMapsQuery, useMapsDataQuery, useMapsConfigQuery };
