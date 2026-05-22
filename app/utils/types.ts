@@ -1,11 +1,8 @@
 import {
-  DefaultError,
   DefinedInitialDataOptions,
   QueryClient,
   QueryKey,
   UndefinedInitialDataOptions,
-  UseMutationOptions,
-  UseMutationResult,
   UseQueryOptions,
   UseQueryResult,
 } from "@tanstack/react-query";
@@ -14,6 +11,16 @@ export type ObjectValues<T> = T[keyof T];
 
 export type BaseQuery<TData, TSetQUeryDataVariables = void> = (
   query?: Query<TData>,
+) => QueryReturnType<TData, TSetQUeryDataVariables>;
+
+export type BaseQueryWithVariables<
+  TData,
+  TVariables,
+  TSetQUeryDataVariables = void,
+> = (
+  query: Query<TData> & {
+    variables: TVariables;
+  },
 ) => QueryReturnType<TData, TSetQUeryDataVariables>;
 
 export type Query<TData> = UseQueryParams<

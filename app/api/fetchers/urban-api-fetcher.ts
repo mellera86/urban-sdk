@@ -23,7 +23,9 @@ const urbanApiFetch = async <T>(
       ...(options || {}),
     };
 
-    const url = `${BASE_URL}${requestUrl}`;
+    const url = requestUrl.includes(BASE_URL!)
+      ? requestUrl
+      : `${BASE_URL}${requestUrl}`;
 
     const res = await fetch(url, {
       method,
