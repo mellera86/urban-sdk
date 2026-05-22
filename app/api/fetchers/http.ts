@@ -1,4 +1,4 @@
-import { ObjectValues } from "@/app/utils/types";
+import { ObjectValues } from "@utils/types";
 
 export const HTTP_METHODS = {
   GET: "GET",
