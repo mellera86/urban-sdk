@@ -19,12 +19,12 @@ function parseSourcesParam(value: string | null): string[] {
   if (!value) return [];
   return value
     .split(",")
-    .map((item) => decodeURIComponent(item.trim()))
+    .map((item) => item.trim())
     .filter(Boolean);
 }
 
 function serializeSourcesParam(sources: string[]): string {
-  return sources.map(encodeURIComponent).join(",");
+  return sources.join(",");
 }
 
 function parseSortParam(value: string | null): MapSortOption {
