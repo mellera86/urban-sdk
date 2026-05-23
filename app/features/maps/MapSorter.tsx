@@ -10,7 +10,12 @@ import {
   CommandItem,
   CommandList,
 } from "@components/Command";
-import { Popover, PopoverContent, PopoverTrigger } from "@components/Popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTitle,
+  PopoverTrigger,
+} from "@components/Popover";
 import { ChevronDownIcon } from "lucide-react";
 import {
   getSortOptionLabel,
@@ -25,6 +30,8 @@ type MapSorterProps = {
 
 const MapSorter = ({ value, onValueChange }: MapSorterProps) => {
   const labelId = useId();
+  const valueDescriptionId = useId();
+  const listboxId = useId();
   const [open, setOpen] = useState(false);
 
   return (
@@ -32,37 +39,51 @@ const MapSorter = ({ value, onValueChange }: MapSorterProps) => {
       <Label id={labelId}>Sort By:</Label>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger
-          aria-labelledby={labelId}
           render={
             <Button
               variant="outline"
-              role="combobox"
+              type="button"
+              aria-labelledby={`${labelId} ${valueDescriptionId}`}
+              aria-haspopup="listbox"
+              aria-controls={listboxId}
               aria-expanded={open}
-              className="max-w-sm min-w-64 justify-between font-normal"
+              className="max-w-sm min-w-64 justify-between font-normal text-black aria-expanded:text-black"
             />
           }
         >
-          <span className="truncate">{getSortOptionLabel(value)}</span>
-          <ChevronDownIcon className="size-4 shrink-0 opacity-50" />
+          <span id={valueDescriptionId} className="truncate">
+            {getSortOptionLabel(value)}
+          </span>
+          <ChevronDownIcon className="size-4 shrink-0 opacity-50" aria-hidden />
         </PopoverTrigger>
         <PopoverContent className="w-64 p-0" align="start">
+          <PopoverTitle className="sr-only">Sort maps</PopoverTitle>
           <Command shouldFilter={false} value={getSortOptionLabel(value)}>
             <CommandInput visuallyHidden aria-labelledby={labelId} />
-            <CommandList>
+            <CommandList
+              id={listboxId}
+              role="listbox"
+              aria-labelledby={labelId}
+            >
               <CommandGroup>
-                {MAP_SORT_OPTIONS.map((option) => (
-                  <CommandItem
-                    key={option.value}
-                    value={option.label}
-                    data-checked={value === option.value}
-                    onSelect={() => {
-                      onValueChange(option.value);
-                      setOpen(false);
-                    }}
-                  >
-                    {option.label}
-                  </CommandItem>
-                ))}
+                {MAP_SORT_OPTIONS.map((option) => {
+                  const selected = value === option.value;
+                  return (
+                    <CommandItem
+                      key={option.value}
+                      value={option.label}
+                      role="option"
+                      aria-selected={selected}
+                      data-checked={selected ? true : undefined}
+                      onSelect={() => {
+                        onValueChange(option.value);
+                        setOpen(false);
+                      }}
+                    >
+                      {option.label}
+                    </CommandItem>
+                  );
+                })}
               </CommandGroup>
             </CommandList>
           </Command>

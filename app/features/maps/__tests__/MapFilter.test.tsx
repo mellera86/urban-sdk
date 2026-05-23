@@ -8,7 +8,9 @@ describe("MapFilter", () => {
       <MapFilter subLabels={["Source A", "Source B"]} value={[]} onValueChange={jest.fn()} />,
     );
 
-    expect(screen.getByRole("combobox")).toHaveTextContent("All sources");
+    expect(
+      screen.getByRole("button", { name: "Filter By: All sources" }),
+    ).toBeInTheDocument();
   });
 
   it("shows a single selected source label", () => {
@@ -20,7 +22,9 @@ describe("MapFilter", () => {
       />,
     );
 
-    expect(screen.getByRole("combobox")).toHaveTextContent("Source B");
+    expect(
+      screen.getByRole("button", { name: "Filter By: Source B" }),
+    ).toBeInTheDocument();
   });
 
   it("shows a count when multiple sources are selected", () => {
@@ -32,7 +36,9 @@ describe("MapFilter", () => {
       />,
     );
 
-    expect(screen.getByRole("combobox")).toHaveTextContent("2 sources selected");
+    expect(
+      screen.getByRole("button", { name: "Filter By: 2 sources selected" }),
+    ).toBeInTheDocument();
   });
 
   it("adds a source when an option is selected", async () => {
@@ -47,8 +53,8 @@ describe("MapFilter", () => {
       />,
     );
 
-    await user.click(screen.getByRole("combobox"));
-    await user.click(screen.getByText("Source B"));
+    await user.click(screen.getByRole("button", { name: "Filter By: Source A" }));
+    await user.click(screen.getByRole("option", { name: "Source B" }));
 
     expect(onValueChange).toHaveBeenCalledWith(["Source A", "Source B"]);
   });
@@ -65,8 +71,10 @@ describe("MapFilter", () => {
       />,
     );
 
-    await user.click(screen.getByRole("combobox"));
-    await user.click(screen.getByText("Source A"));
+    await user.click(
+      screen.getByRole("button", { name: "Filter By: 2 sources selected" }),
+    );
+    await user.click(screen.getByRole("option", { name: "Source A" }));
 
     expect(onValueChange).toHaveBeenCalledWith(["Source B"]);
   });

@@ -18,19 +18,26 @@ const ApiResponseWrapper: FC<ApiResponseWrapperProps> = ({
 }) => {
   const { isPending, error, data } = query ?? {};
 
-  if (isPending)
+  if (isPending) {
     return (
-      <div className="absolute top-[10%] left-[50%]">
+      <div
+        className="absolute top-[10%] left-[50%]"
+        role="status"
+        aria-live="polite"
+        aria-busy="true"
+      >
+        <p className="sr-only">Loading content</p>
         <Spinner className="size-14" />
       </div>
     );
+  }
 
   if (error) {
     return <Message variant="error">{errorMessage ?? error}</Message>;
   }
 
   if (!data || data.length === 0) {
-    return <Message>{emptyMessage}</Message>;
+    return <Message role="status">{emptyMessage}</Message>;
   }
 
   return children;

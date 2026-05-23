@@ -19,14 +19,25 @@ const MapsPage = () => {
     setSort,
   } = useMapFilterAndSorter(maps);
 
+  const resultsMessage =
+    filteredMaps.length === 1
+      ? "Showing 1 map"
+      : `Showing ${filteredMaps.length} maps`;
+
   return (
     <ApiResponseWrapper
       query={mapsQuery}
       emptyMessage="No maps found."
       errorMessage="Oops, something unexpected happened. Please try again later or contact support at 555-5555."
     >
-      <div className="flex flex-col gap-6 max-w-5xl mx-auto">
-        <div className="flex flex-wrap items-end justify-center gap-4">
+      <main id="main-content" className="flex mx-auto max-w-5xl flex-col gap-6">
+        <header className="mt-8 text-center">
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Welcome the Urban SDK map viewer!
+          </h1>
+        </header>
+
+        <div className="flex flex-wrap items-end justify-center gap-4 text-slate-100 [&_label]:text-slate-100">
           <MapFilter
             subLabels={subLabels}
             value={subLabelFilter}
@@ -34,8 +45,13 @@ const MapsPage = () => {
           />
           <MapSorter value={sort} onValueChange={setSort} />
         </div>
+
+        <p className="sr-only" aria-live="polite" aria-atomic="true">
+          {resultsMessage}
+        </p>
+
         <MapCardsGrid maps={filteredMaps} />
-      </div>
+      </main>
     </ApiResponseWrapper>
   );
 };

@@ -1,41 +1,39 @@
 "use client";
 
-import { ErrorFallback } from "@components/ErrorFallback";
+import { Message } from "@components/Message";
 import { Component, type ErrorInfo, type ReactNode } from "react";
 
 type ErrorBoundaryProps = {
   children: ReactNode;
+  fallbackMessage?: string;
 };
 
 type ErrorBoundaryState = {
   hasError: boolean;
-  resetKey: number;
 };
 
 class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  state: ErrorBoundaryState = { hasError: false, resetKey: 0 };
+  state: ErrorBoundaryState = { hasError: false };
 
-  static getDerivedStateFromError(): Partial<ErrorBoundaryState> {
+  static getDerivedStateFromError(): ErrorBoundaryState {
     return { hasError: true };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error("Uncaught error:", error, errorInfo);
+    console.error("ErrorBoundary caught an error", error, errorInfo);
   }
-
-  handleReset = () => {
-    this.setState((state) => ({
-      hasError: false,
-      resetKey: state.resetKey + 1,
-    }));
-  };
 
   render() {
     if (this.state.hasError) {
-      return <ErrorFallback onReset={this.handleReset} />;
+      return (
+        <Message variant="error">
+          {this.props.fallbackMessage ??
+            "Something went wrong. Please refresh the page and try again."}
+        </Message>
+      );
     }
 
-    return <div key={this.state.resetKey}>{this.props.children}</div>;
+    return this.props.children;
   }
 }
 

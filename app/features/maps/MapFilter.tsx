@@ -11,7 +11,12 @@ import {
   CommandItem,
   CommandList,
 } from "@components/Command";
-import { Popover, PopoverContent, PopoverTrigger } from "@components/Popover";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTitle,
+  PopoverTrigger,
+} from "@components/Popover";
 import { ChevronDownIcon } from "lucide-react";
 
 type MapFilterProps = {
@@ -28,6 +33,8 @@ function getTriggerLabel(selected: string[]) {
 
 const MapFilter = ({ subLabels, value, onValueChange }: MapFilterProps) => {
   const labelId = useId();
+  const valueDescriptionId = useId();
+  const listboxId = useId();
   const [open, setOpen] = useState(false);
 
   const toggleSubLabel = (subLabel: string) => {
@@ -43,35 +50,53 @@ const MapFilter = ({ subLabels, value, onValueChange }: MapFilterProps) => {
       <Label id={labelId}>Filter By:</Label>
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger
-          aria-labelledby={labelId}
           render={
             <Button
               variant="outline"
-              role="combobox"
+              type="button"
+              aria-labelledby={`${labelId} ${valueDescriptionId}`}
+              aria-haspopup="listbox"
+              aria-controls={listboxId}
               aria-expanded={open}
-              className="max-w-sm min-w-64 justify-between font-normal"
+              className="max-w-sm min-w-64 justify-between font-normal text-black aria-expanded:text-black"
             />
           }
         >
-          <span className="truncate">{getTriggerLabel(value)}</span>
-          <ChevronDownIcon className="size-4 shrink-0 opacity-50" />
+          <span id={valueDescriptionId} className="truncate">
+            {getTriggerLabel(value)}
+          </span>
+          <ChevronDownIcon className="size-4 shrink-0 opacity-50" aria-hidden />
         </PopoverTrigger>
         <PopoverContent className="w-64 p-0" align="start">
+          <PopoverTitle className="sr-only">Filter by source</PopoverTitle>
           <Command>
-            <CommandInput placeholder="Search sources..." />
-            <CommandList>
+            <CommandInput
+              placeholder="Search sources..."
+              aria-label="Search sources"
+            />
+            <CommandList
+              id={listboxId}
+              role="listbox"
+              aria-multiselectable="true"
+              aria-labelledby={labelId}
+            >
               <CommandEmpty>No source found.</CommandEmpty>
               <CommandGroup>
-                {subLabels.map((subLabel) => (
-                  <CommandItem
-                    key={subLabel}
-                    value={subLabel}
-                    data-checked={value.includes(subLabel)}
-                    onSelect={() => toggleSubLabel(subLabel)}
-                  >
-                    {subLabel}
-                  </CommandItem>
-                ))}
+                {subLabels.map((subLabel) => {
+                  const selected = value.includes(subLabel);
+                  return (
+                    <CommandItem
+                      key={subLabel}
+                      value={subLabel}
+                      role="option"
+                      aria-selected={selected}
+                      data-checked={selected ? true : undefined}
+                      onSelect={() => toggleSubLabel(subLabel)}
+                    >
+                      {subLabel}
+                    </CommandItem>
+                  );
+                })}
               </CommandGroup>
             </CommandList>
           </Command>

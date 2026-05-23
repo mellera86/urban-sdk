@@ -26,4 +26,16 @@ describe("MapCardsGrid", () => {
     expect(screen.getByRole("list")).toBeInTheDocument();
     expect(screen.queryAllByRole("listitem")).toHaveLength(0);
   });
+
+  it("uses a centered flex layout with clamped card widths", () => {
+    render(<MapCardsGrid maps={sampleMaps.slice(0, 2)} />);
+
+    const list = screen.getByRole("list");
+    expect(list.className).toContain("flex");
+    expect(list.className).toContain("flex-wrap");
+    expect(list.className).toContain("justify-center");
+
+    const item = screen.getAllByRole("listitem")[0];
+    expect(item.className).toContain("clamp");
+  });
 });

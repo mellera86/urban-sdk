@@ -11,7 +11,7 @@ const cardVariants = cva(
         default:
           "gap-4 overflow-hidden rounded-xl bg-card py-4 ring-1 ring-foreground/10 has-data-[slot=card-footer]:pb-0 has-[>img:first-child]:pt-0 data-[size=sm]:gap-3 data-[size=sm]:py-3 data-[size=sm]:has-data-[slot=card-footer]:pb-0 *:[img:first-child]:rounded-t-xl *:[img:last-child]:rounded-b-xl",
         media:
-          "gap-0 overflow-hidden rounded-2xl border border-border/60 bg-card-elevated shadow-md shadow-foreground/5 transition-all duration-300 hover:shadow-lg hover:scale-[1.02] hover:shadow-foreground/10 has-data-[slot=card-media]:pt-0",
+          "w-full gap-0 overflow-hidden rounded-2xl border border-border/60 bg-card-elevated shadow-md shadow-foreground/5 transition-[box-shadow,transform] duration-300 motion-reduce:transition-none motion-reduce:hover:transform-none hover:shadow-lg hover:scale-[1.02] motion-reduce:hover:scale-100 hover:shadow-foreground/10 has-data-[slot=card-media]:pt-0",
       },
       size: {
         default: "",
@@ -81,9 +81,17 @@ function CardTitleRow({ className, ...props }: React.ComponentProps<"div">) {
   );
 }
 
-function CardTitle({ className, ...props }: React.ComponentProps<"div">) {
+type CardTitleProps = React.ComponentProps<"h2"> & {
+  as?: "h2" | "h3" | "h4";
+};
+
+function CardTitle({
+  as: Heading = "h3",
+  className,
+  ...props
+}: CardTitleProps) {
   return (
-    <div
+    <Heading
       data-slot="card-title"
       className={cn(
         "min-w-0 flex-1 font-sans text-base leading-snug font-semibold tracking-tight text-foreground",

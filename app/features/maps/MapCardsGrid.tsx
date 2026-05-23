@@ -5,12 +5,13 @@ import { Map } from "@models/maps";
 
 const MapCardsGrid = ({ maps }: { maps: Map[] }) => {
   return (
-    <div
-      role="list"
-      className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3"
-    >
+    <div role="list" className="flex flex-wrap justify-center gap-6">
       {maps.map((map) => (
-        <div role="listitem" key={`map-card-${map.id}-${map.imageUrl}`}>
+        <div
+          role="listitem"
+          key={`map-card-${map.id}-${map.imageUrl}`}
+          className="min-w-0 w-[clamp(16rem,100%,18rem)]"
+        >
           <MapCard map={map} />
         </div>
       ))}

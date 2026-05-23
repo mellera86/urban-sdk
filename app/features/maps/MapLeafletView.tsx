@@ -33,6 +33,14 @@ import {
   isLargeGeoJSON,
   isRouteLineCollection,
 } from "./geojson-utils";
+import {
+  buildChoroplethBucketsFromGeoJson,
+  formatFeatureValue,
+  getChoroplethColor,
+  type ChoroplethBucket,
+} from "./map-choropleth-legend";
+import { MapFeatureTable } from "./MapFeatureTable";
+import { MapLegend } from "./MapLegend";
 
 type MapLeafletViewProps = {
   mapKey: string;
@@ -41,30 +49,19 @@ type MapLeafletViewProps = {
   valueProperty?: string;
 };
 
-const getColor = (value: number | null): string => {
-  if (value === null || value === undefined) return "#95a5a6";
-  return value > 50
-    ? "#800026"
-    : value > 40
-      ? "#BD0026"
-      : value > 30
-        ? "#E31A1C"
-        : value > 20
-          ? "#FC4E2A"
-          : value > 10
-            ? "#FD8D3C"
-            : "#FFEDA0";
-};
-
 function isCircleMarker(layer: Layer): layer is CircleMarker {
   return "setRadius" in layer && typeof layer.setRadius === "function";
 }
 
-function getPointStyle(feature: Feature, valueProperty?: string) {
+function getPointStyle(
+  feature: Feature,
+  valueProperty: string | undefined,
+  buckets: ChoroplethBucket[],
+) {
   const value = getFeatureValue(feature, valueProperty);
   return {
     radius: 6,
-    fillColor: getColor(value),
+    fillColor: getChoroplethColor(value, buckets),
     color: "#ffffff",
     weight: 1,
     fillOpacity: 0.8,
@@ -79,15 +76,39 @@ function getRouteLineStyle() {
   };
 }
 
-function getPathStyle(feature: Feature, valueProperty?: string) {
+function getPathStyle(
+  feature: Feature,
+  valueProperty: string | undefined,
+  buckets: ChoroplethBucket[],
+) {
   const value = getFeatureValue(feature, valueProperty);
   return {
-    fillColor: getColor(value),
+    fillColor: getChoroplethColor(value, buckets),
     weight: 1,
     opacity: 1,
     color: "#ffffff",
     fillOpacity: 0.7,
   };
+}
+
+function buildPopupContent(
+  props: Record<string, unknown> | null,
+  feature: Feature,
+  valueProperty?: string,
+) {
+  const label = getFeatureLabel(props);
+  const value = getFeatureValue(feature, valueProperty);
+  const valueLine =
+    value !== null && valueProperty
+      ? `<p style="margin: 0.5rem 0 0;">${valueProperty}: ${formatFeatureValue(value, valueProperty)}</p>`
+      : "";
+
+  return `
+    <div style="font-size: 13px; line-height: 1.4; min-width: 200px;">
+      <strong>${label}</strong>
+      ${valueLine}
+    </div>
+  `;
 }
 
 const FitBounds: FC<{ data: MapGeoJSON }> = ({ data }) => {
@@ -123,63 +144,102 @@ const MapLeafletView: FC<MapLeafletViewProps> = ({
   const isLargeDataset = isLargeGeoJSON(geoJson);
   const isRouteLines = isRouteLineCollection(geoJson);
   const renderPoints = hasPointFeatures(geoJson);
+  const showChoroplethLegend = !isRouteLines && !!valueProperty;
+
+  const choroplethBuckets = useMemo(
+    () => buildChoroplethBucketsFromGeoJson(geoJson, valueProperty),
+    [geoJson, valueProperty],
+  );
 
   const pointToLayer = useCallback<NonNullable<GeoJSONOptions["pointToLayer"]>>(
     (feature, latlng) =>
-      L.circleMarker(latlng, getPointStyle(feature as Feature, valueProperty)),
-    [valueProperty],
+      L.circleMarker(
+        latlng,
+        getPointStyle(feature as Feature, valueProperty, choroplethBuckets),
+      ),
+    [valueProperty, choroplethBuckets],
   );
 
   const geoJsonStyle = useCallback<StyleFunction>(
     (feature) => {
       if (!feature) return {};
       if (isRouteLines) return getRouteLineStyle();
-      return getPathStyle(feature as Feature, valueProperty);
+      return getPathStyle(
+        feature as Feature,
+        valueProperty,
+        choroplethBuckets,
+      );
     },
-    [isRouteLines, valueProperty],
+    [isRouteLines, valueProperty, choroplethBuckets],
   );
 
   const onEachFeature = useCallback(
     (feature: Feature, layer: Layer) => {
       const props = feature.properties as Record<string, unknown> | null;
 
-      layer.bindPopup(`
-      <div style="font-size: 13px; line-height: 1.4; min-width: 200px;">
-        <h4>${getFeatureLabel(props)}</h4>
-      </div>
-    `);
+      layer.bindPopup(buildPopupContent(props, feature, valueProperty));
 
       if (isLargeDataset) return;
 
-      layer.on({
-        mouseover: (e: LeafletMouseEvent) => {
-          const target = e.target;
-          if (isCircleMarker(target)) {
-            target.setRadius(10);
-            return;
-          }
-          (target as Path).setStyle(
-            isRouteLines
-              ? { weight: 4, opacity: 1, color: "#fb923c" }
-              : {
-                  fillOpacity: 0.9,
-                  weight: 3,
-                  color: "#4a5568",
-                },
+      const emphasize = (target: Layer) => {
+        if (isCircleMarker(target)) {
+          target.setRadius(10);
+          return;
+        }
+        const path = target as Path;
+        path.setStyle(
+          isRouteLines
+            ? { weight: 4, opacity: 1, color: "#fb923c" }
+            : {
+                fillOpacity: 0.9,
+                weight: 3,
+                color: "#4a5568",
+              },
+        );
+        path.bringToFront();
+      };
+
+      const resetEmphasis = (target: Layer) => {
+        if (isCircleMarker(target)) {
+          target.setStyle(
+            getPointStyle(feature, valueProperty, choroplethBuckets),
           );
-          target.bringToFront();
-        },
-        mouseout: (e: LeafletMouseEvent) => {
-          const target = e.target;
-          if (isCircleMarker(target)) {
-            target.setStyle(getPointStyle(feature, valueProperty));
-            return;
-          }
-          geoJsonRef.current?.resetStyle(target);
-        },
+          return;
+        }
+        geoJsonRef.current?.resetStyle(target);
+      };
+
+      layer.on({
+        mouseover: (e: LeafletMouseEvent) => emphasize(e.target),
+        mouseout: (e: LeafletMouseEvent) => resetEmphasis(e.target),
       });
+
+      if ("getElement" in layer && typeof layer.getElement === "function") {
+        const element = layer.getElement() as HTMLElement | undefined;
+        if (element) {
+          element.setAttribute("tabindex", "0");
+          element.setAttribute("role", "button");
+          const featureValue = getFeatureValue(feature, valueProperty);
+          const featureLabel = getFeatureLabel(props);
+          element.setAttribute(
+            "aria-label",
+            featureValue !== null && valueProperty
+              ? `${featureLabel}: ${formatFeatureValue(featureValue, valueProperty)}`
+              : featureLabel,
+          );
+
+          const onFocus = () => emphasize(layer);
+          const onBlur = () => resetEmphasis(layer);
+          element.addEventListener("focus", onFocus);
+          element.addEventListener("blur", onBlur);
+          layer.on("remove", () => {
+            element.removeEventListener("focus", onFocus);
+            element.removeEventListener("blur", onBlur);
+          });
+        }
+      }
     },
-    [isLargeDataset, isRouteLines, valueProperty],
+    [choroplethBuckets, isLargeDataset, isRouteLines, valueProperty],
   );
 
   const mapContainerProps = useMemo(
@@ -205,17 +265,35 @@ const MapLeafletView: FC<MapLeafletViewProps> = ({
   }, [geoJson, onEachFeature, pointToLayer, geoJsonStyle, renderPoints]);
 
   return (
-    <div className="h-[min(60vh,600px)] w-full overflow-hidden rounded-lg shadow-md">
-      <MapContainer key={mapKey} {...mapContainerProps}>
-        <TileLayer url={tileLayerUrl} />
-        <GeoJSON
-          key={mapKey}
-          ref={geoJsonRef}
-          {...(geoJsonProps as GeoJSONProps)}
+    <section
+      className="flex flex-col gap-4"
+      aria-label="Interactive map visualization"
+    >
+      <p className="text-sm text-muted-foreground">
+        Use mouse or touch to pan and zoom.
+      </p>
+
+      {showChoroplethLegend && choroplethBuckets.length > 0 ? (
+        <MapLegend
+          valueProperty={valueProperty}
+          buckets={choroplethBuckets}
         />
-        <FitBounds data={geoJson} />
-      </MapContainer>
-    </div>
+      ) : null}
+
+      <div className="h-[min(60vh,600px)] w-full overflow-hidden rounded-lg shadow-md">
+        <MapContainer key={mapKey} {...mapContainerProps}>
+          <TileLayer url={tileLayerUrl} />
+          <GeoJSON
+            key={mapKey}
+            ref={geoJsonRef}
+            {...(geoJsonProps as GeoJSONProps)}
+          />
+          <FitBounds data={geoJson} />
+        </MapContainer>
+      </div>
+
+      <MapFeatureTable geoJson={geoJson} valueProperty={valueProperty} />
+    </section>
   );
 };
 

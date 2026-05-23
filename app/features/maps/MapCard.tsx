@@ -1,6 +1,7 @@
 "use client";
 
 import { Badge } from "@components/Badge";
+
 import {
   Card,
   CardContent,
@@ -10,12 +11,16 @@ import {
   CardTitle,
   CardTitleRow,
 } from "@components/Card";
+
 import { Map } from "@models/maps";
+
 import Image from "next/image";
+
 import dynamic from "next/dynamic";
 
 const MapDialog = dynamic(
   () => import("./MapDialog").then((mod) => mod.MapDialog),
+
   { ssr: false },
 );
 
@@ -31,25 +36,27 @@ const MapCard = ({ map }: { map: Map }) => {
       title={label}
       description={description}
     >
-      <Card variant="media" className="relative h-full">
+      <Card variant="media" className="relative h-full w-full">
         <CardMedia>
           <Image
             src={imageUrl}
-            alt=""
+            alt={label}
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
             className="object-cover"
-            aria-hidden
           />
         </CardMedia>
+
         <Badge variant="source" className="absolute top-2 right-2">
           {subLabel}
         </Badge>
+
         <CardHeader>
           <CardTitleRow>
-            <CardTitle>{label}</CardTitle>
+            <CardTitle as="h2">{label}</CardTitle>
           </CardTitleRow>
         </CardHeader>
+
         <CardContent>
           <CardDescription>{description}</CardDescription>
         </CardContent>

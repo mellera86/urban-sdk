@@ -8,6 +8,7 @@ type VariantType = "error" | "info";
 
 type MessageProps = PropsWithChildren & {
   variant?: VariantType;
+  role?: "alert" | "status";
 };
 
 const variantColorMap: Record<VariantType, string> = {
@@ -15,9 +16,19 @@ const variantColorMap: Record<VariantType, string> = {
   info: "text-primary",
 };
 
-const Message: FC<MessageProps> = ({ children, variant = "info" }) => {
+const Message: FC<MessageProps> = ({
+  children,
+  variant = "info",
+  role,
+}) => {
+  const resolvedRole = role ?? (variant === "error" ? "alert" : "status");
+
   return (
-    <Card className={cn("mx-auto mt-10", variantColorMap[variant])}>
+    <Card
+      className={cn("mx-auto mt-10", variantColorMap[variant])}
+      role={resolvedRole}
+      aria-live={resolvedRole === "alert" ? "assertive" : "polite"}
+    >
       <CardContent>{children}</CardContent>
     </Card>
   );

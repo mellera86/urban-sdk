@@ -29,7 +29,10 @@ const MapDataVisualization: FC<MapDataVisualizationProps> = ({
 
   if (!leafletGeoJson) {
     return (
-      <div className="flex h-[min(60vh,600px)] w-full items-center justify-center rounded-lg bg-muted/30 text-sm text-muted-foreground">
+      <div
+        className="flex h-[min(60vh,600px)] w-full items-center justify-center rounded-lg bg-muted/30 text-sm text-muted-foreground"
+        role="status"
+      >
         No map data to display.
       </div>
     );

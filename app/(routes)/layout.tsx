@@ -19,7 +19,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${geistSans.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col p-2 bg-blue-100">
+      <body className="min-h-full flex flex-col bg-[color-mix(in_srgb,#283142_90%,white_10%)] p-2 text-slate-100">
+        <a href="#main-content" className="skip-link">
+          Skip to main content
+        </a>
         <Providers>{children}</Providers>
       </body>
     </html>
